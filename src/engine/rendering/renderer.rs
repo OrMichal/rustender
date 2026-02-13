@@ -1,8 +1,11 @@
-use crate::engine::{graphics::Size, rendering::RenderQuality};
+use std::thread;
+
+use crate::engine::{graphics::Size, rendering::{AsciiBuffer, RenderQuality}};
 
 #[allow(dead_code)]
 pub struct Renderer {
-    buffer: Vec<char>,
+    front_buffer: AsciiBuffer,
+    back_buffer: AsciiBuffer,    
     buffer_size: Size,
     fps: i16,
     quality: RenderQuality,
@@ -18,6 +21,35 @@ impl Renderer {
         where T: Fn(&'static str) + 'static {
         self.on_failed = Box::new(f);
     }
+
+    pub fn render(&self) {
+        let chunk_size = self.front_buffer.len() / self.quality.clone() as usize;
+
+        thread::scope(|s| {
+            for i in 0..(self.quality.clone() as usize) {
+                let start = i * chunk_size;
+                let end = if i == 3 {
+                    self.front_buffer.len()
+                } else {
+                    (i + 1) * chunk_size
+                };
+
+                let slice = self.front_buffer.chunk(start, end);
+
+                s.spawn(move || {
+                    slice.print();
+                });
+            }
+        });
+    }
+
+    fn update_buffer(&mut self) {
+        std::mem::swap(&mut self.front_buffer, &mut self.back_buffer);
+    }
+
+    fn calculate_next_scene(&mut self) {
+
+    }
 }
 
 #[allow(dead_code)]
@@ -30,14 +62,18 @@ pub struct RendererBuilder {
 impl RendererBuilder {
     pub fn build(self) -> Renderer {
         Renderer { 
-            buffer: vec![' '; match &self.buffer_size {
-                Some(size) => (size.height * size.width) as usize,
-                None => 100 * 50 as usize
-            }], 
             buffer_size: match &self.buffer_size {
                 Some(size) => size.clone(),
                 None => Size::new(100.0, 50.0)
             }, 
+            front_buffer: AsciiBuffer::new(self.buffer_size.clone().unwrap().width as u32, vec![' '; match &self.buffer_size {
+                Some(size) => (size.height * size.width) as usize,
+                None => 100 * 50 as usize
+            }]), 
+            back_buffer: AsciiBuffer::new(self.buffer_size.clone().unwrap().width as u32, vec![' '; match &self.buffer_size {
+                Some(size) => (size.height * size.width) as usize,
+                None => 100 * 50 as usize
+            }]), 
             fps: self.fps, 
             quality: match &self.quality {
                 Some(q) => q.clone(),
