@@ -1,3 +1,5 @@
-mod ilumination;
+pub mod matrices;
+mod special_matrices;
 
-pub use ilumination::*;
+pub use matrices::*;
+pub use special_matrices::*;

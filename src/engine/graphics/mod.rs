@@ -1,6 +1,6 @@
-mod point;
+mod vec3;
 mod size;
 mod shape;
 
-pub use point::*;
+pub use vec3::*;
 pub use size::*;
