@@ -25,7 +25,6 @@ pub fn mesh_init() {
         ],
         position: [0.0, 0.0, 0.0].into(),
         rotation: Rotation::new(2.0, 0.0, 0.0),
-        scale: [1.0, 1.0, 1.0].into()
     };
 
     assert_eq!(mesh, expected);
