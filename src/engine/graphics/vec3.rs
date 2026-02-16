@@ -1,3 +1,4 @@
+use crate::{Vec2};
 use std::{ops::{Add, Sub}};
 
 /// Struct representing a mathematical 3D vector
@@ -14,7 +15,7 @@ use std::{ops::{Add, Sub}};
 ///
 /// ```
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Vec3 {
     /// X axis location of 3D vector
     pub x: f64,
@@ -42,6 +43,36 @@ impl Vec3 {
     /// new Vec3 struct
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
+    }
+
+    pub fn get_projected_2d(&self, focal_length: f64) -> Vec2 {
+        Vec2::new((self.x * focal_length) / self.z, (self.y * focal_length) / self.z)
+    }
+
+    pub fn dot(self, rhs: Vec3) -> f64 {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+
+    pub fn cross(self, rhs: Vec3) -> Vec3 {
+        [
+            self.y * rhs.z - self.z * rhs.y,
+            self.z * rhs.x - self.x * rhs.z,
+            self.x * rhs.y - self.y * rhs.x
+        ].into()
+    }
+
+    pub fn length(self) -> f64 {
+        self.dot(self).sqrt()
+    }
+
+    pub fn normalize(self) -> Vec3 {
+        let len = self.length();
+
+        [
+            self.x / len,
+            self.y / len,
+            self.z / len
+        ].into()
     }
 }
 

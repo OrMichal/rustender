@@ -1,4 +1,4 @@
-use crate::graphics::Vec3;
+use crate::{GDI, graphics::{Vec3}};
 
 /// Triangle struct for representing a triangle in computer graphics. Used for creating Meshes
 ///
@@ -37,6 +37,27 @@ impl Triangle {
     /// - `vertices`: Array of 3 3D vectors
     pub fn new(vertices: [Vec3; 3]) -> Self {
         Self { vertices }
+    }
+
+    pub fn rasterize(&self) -> Vec<Vec3> {
+        let mut res = Vec::new();
+
+        let mut a = GDI::line(self.vertices[0], self.vertices[1]);
+        let mut b = GDI::line(self.vertices[1], self.vertices[2]);
+        let mut c = GDI::line(self.vertices[2], self.vertices[0]);
+
+        a.iter_mut().for_each(|i| res.push(*i));
+        b.iter_mut().for_each(|i| res.push(*i));
+        c.iter_mut().for_each(|i| res.push(*i));
+
+        res
+    }
+
+    pub fn normal(&self) -> Vec3 {
+        let line1 = self.vertices[1] - self.vertices[0];
+        let line2 = self.vertices[2] - self.vertices[0];
+
+        line1.cross(line2).normalize()
     }
 }
 

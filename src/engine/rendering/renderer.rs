@@ -1,6 +1,6 @@
-use std::thread;
-
-use crate::engine::{graphics::Size, rendering::{AsciiBuffer, RenderQuality}};
+use std::{io::{Write, stdout}};
+use crossterm::queue;
+use crate::{Camera, Mesh, Transferer, Vec3, engine::{graphics::Size, rendering::{AsciiBuffer, RenderQuality}}};
 
 #[allow(dead_code)]
 pub struct Renderer {
@@ -9,38 +9,58 @@ pub struct Renderer {
     buffer_size: Size,
     fps: i16,
     quality: RenderQuality,
-    on_failed: Box<dyn Fn(&'static str) -> ()>
+    on_failed: Box<dyn Fn(&'static str)>,
+    light_direction: Vec3,
+    meshes: Vec<Mesh>
 }
 
+#[allow(dead_code)]
 impl Renderer {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> RendererBuilder {
-        RendererBuilder { buffer_size: None, fps: 60, quality: None }
+        RendererBuilder { buffer_size: None, fps: 60, quality: None, light_direction: None }
     }
 
-    pub fn on_error<T>(&mut self, f: T)
-        where T: Fn(&'static str) + 'static {
+    pub fn on_error<T: Fn(&'static str) + 'static>(&mut self, f: T) {
         self.on_failed = Box::new(f);
     }
 
-    pub fn render(&self) {
-        let chunk_size = self.front_buffer.len() / self.quality.clone() as usize;
+    fn render(&self) {
+        self.front_buffer.print();
+    }
 
-        thread::scope(|s| {
-            for i in 0..(self.quality.clone() as usize) {
-                let start = i * chunk_size;
-                let end = if i == 3 {
-                    self.front_buffer.len()
-                } else {
-                    (i + 1) * chunk_size
-                };
+    pub fn start(&mut self, camera: &Camera) {
+        let mut stdout = stdout();
+        queue!(stdout, crossterm::cursor::Hide).unwrap();
 
-                let slice = self.front_buffer.chunk(start, end);
+        let frame_time = std::time::Duration::from_millis(1000 / self.fps as u64);
 
-                s.spawn(move || {
-                    slice.print();
-                });
+        loop {
+            let start = std::time::Instant::now();
+            {
+                let mut transferer  = Transferer(&mut self.back_buffer, &self.meshes);
+
+                transferer.start_transfering(camera, self.light_direction);
+
+                self.sync_buffers();
             }
-        });
+
+            self.render();
+            stdout.flush().unwrap();
+
+            let elapsed = start.elapsed();
+            if elapsed < frame_time {
+                std::thread::sleep(frame_time - elapsed);
+            }
+        }
+    }
+
+    pub fn add_mesh(&mut self, mesh: Mesh) {
+        self.meshes.push(mesh);
+    }
+
+    fn sync_buffers(&mut self) {
+        std::mem::swap(&mut self.front_buffer, &mut self.back_buffer);
     }
 
     fn update_buffer(&mut self) {
@@ -57,6 +77,7 @@ pub struct RendererBuilder {
     buffer_size: Option<Size>,
     fps: i16,
     quality: Option<RenderQuality>,
+    light_direction: Option<Vec3>
 }
 
 impl RendererBuilder {
@@ -68,11 +89,11 @@ impl RendererBuilder {
             }, 
             front_buffer: AsciiBuffer::new(self.buffer_size.clone().unwrap().width as u32, vec![' '; match &self.buffer_size {
                 Some(size) => (size.height * size.width) as usize,
-                None => 100 * 50 as usize
+                None => 100 * 50
             }]), 
             back_buffer: AsciiBuffer::new(self.buffer_size.clone().unwrap().width as u32, vec![' '; match &self.buffer_size {
                 Some(size) => (size.height * size.width) as usize,
-                None => 100 * 50 as usize
+                None => 100 * 50
             }]), 
             fps: self.fps, 
             quality: match &self.quality {
@@ -80,30 +101,35 @@ impl RendererBuilder {
                 None => RenderQuality::Low
             }, 
             on_failed: Box::new(|s| {
-                println!("{}", s);
-            }) 
+                println!("{s}");
+            }),
+            light_direction: match &self.light_direction {
+                Some(l) => *l,
+                None => Vec3::new(0.0, 0.0, -1.0).normalize()
+            },
+            meshes: vec![]
         }
     }
 
-    pub fn set_fps(mut self, fps: i16) -> Self {
+    pub fn fps(mut self, fps: i16) -> Self {
         self.fps = fps;
 
         self
     }
 
-    pub fn set_quality(mut self, quality: RenderQuality) -> Self {
+    pub fn quality(mut self, quality: RenderQuality) -> Self {
         self.quality = Some(quality);
 
         self
     }
 
-    pub fn set_size(mut self, size: Size) -> Self {
+    pub fn size(mut self, size: Size) -> Self {
         self.buffer_size = Some(size);
 
         self
     }
 
-    pub fn set_width(mut self, width: f32) -> Self {
+    pub fn width(mut self, width: f32) -> Self {
         match & mut self.buffer_size {
             Some(size) => {
                 size.width = width;
@@ -117,7 +143,7 @@ impl RendererBuilder {
     }
 
 
-    pub fn set_height(mut self, height: f32) -> Self {
+    pub fn height(mut self, height: f32) -> Self {
         match & mut self.buffer_size {
             Some(size) => {
                 size.height = height;
@@ -126,6 +152,12 @@ impl RendererBuilder {
                 self.buffer_size = Some(Size::new(0.0, height));
             }
         }
+
+        self
+    }
+
+    pub fn light_direction(mut self, direction: Vec3) -> Self {
+        self.light_direction = Some(direction);
 
         self
     }

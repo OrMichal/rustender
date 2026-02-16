@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Size {
     pub width: f32,
     pub height: f32

@@ -32,7 +32,7 @@ use std::ops::{Add, Index, Mul, Sub};
 ///]);
 ///```
 #[allow(dead_code)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Matrix<T, const R: usize, const C: usize>(pub [[T; C]; R]);
 
 impl<T, const R: usize, const C: usize> Matrix<T, R, C> {
