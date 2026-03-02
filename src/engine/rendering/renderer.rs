@@ -37,15 +37,10 @@ impl Renderer {
 
         loop {
             let start = std::time::Instant::now();
-            {
-                let mut transferer  = Transferer(&mut self.back_buffer, &self.meshes);
-
-                transferer.start_transfering(camera, self.light_direction);
-
-                self.sync_buffers();
-            }
+            self.calculate_next_scene(camera);
 
             self.render();
+
             stdout.flush().unwrap();
 
             let elapsed = start.elapsed();
@@ -63,12 +58,11 @@ impl Renderer {
         std::mem::swap(&mut self.front_buffer, &mut self.back_buffer);
     }
 
-    fn update_buffer(&mut self) {
-        std::mem::swap(&mut self.front_buffer, &mut self.back_buffer);
-    }
+    fn calculate_next_scene(&mut self, camera: &Camera) {
+        let mut transferer  = Transferer(&mut self.back_buffer, &self.meshes);
 
-    fn calculate_next_scene(&mut self) {
-
+        transferer.start_transfering(camera, self.light_direction);
+        self.sync_buffers();
     }
 }
 
@@ -82,16 +76,21 @@ pub struct RendererBuilder {
 
 impl RendererBuilder {
     pub fn build(self) -> Renderer {
+        let buffer_size = match self.buffer_size.clone() {
+            Some(size) => size,
+            None => {
+                let (cols, rows) = crossterm::terminal::size().unwrap_or((100, 50));
+                Size::new(cols as f32, rows as f32)
+            }
+        };
+
         Renderer { 
-            buffer_size: match &self.buffer_size {
-                Some(size) => size.clone(),
-                None => Size::new(100.0, 50.0)
-            }, 
-            front_buffer: AsciiBuffer::new(self.buffer_size.clone().unwrap().width as u32, vec![' '; match &self.buffer_size {
+            buffer_size: buffer_size.clone(),
+            front_buffer: AsciiBuffer::new(buffer_size.clone().width as u32, vec![' '; match &self.buffer_size {
                 Some(size) => (size.height * size.width) as usize,
                 None => 100 * 50
             }]), 
-            back_buffer: AsciiBuffer::new(self.buffer_size.clone().unwrap().width as u32, vec![' '; match &self.buffer_size {
+            back_buffer: AsciiBuffer::new(buffer_size.clone().width as u32, vec![' '; match &self.buffer_size {
                 Some(size) => (size.height * size.width) as usize,
                 None => 100 * 50
             }]), 

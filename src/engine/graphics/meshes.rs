@@ -39,7 +39,7 @@ impl MESHES {
 
         Mesh {
             triangles,
-            position: Vec3::new(0.0, 0.0, 10.0),
+            position: Vec3::new(20.0, 20.0, 0.0),
             rotation: Rotation::new(0.0, 0.0, 0.0),
         }
     }

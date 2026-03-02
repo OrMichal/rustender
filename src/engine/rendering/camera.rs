@@ -18,13 +18,13 @@ pub struct Camera {
     /// Location of a camera view
     location: Vec3,
     /// Width of a camera view
-    width: usize,
+    pub width: usize,
     /// Height of a camera view
-    height: usize,
+    pub height: usize,
     /// Rotation of a camera view by X, Y and Z axis by radians
     rotation: Rotation,
     /// Field of view of the camera
-    fov: f64
+    fov: f64,
 }
 
 impl Camera {
@@ -34,7 +34,7 @@ impl Camera {
             location: None,
             width: None,
             height: None,
-            fov: None
+            fov: None,
         }
     }
 
@@ -49,7 +49,7 @@ pub struct CameraBuilder {
     location: Option<Vec3>,
     width: Option<usize>,
     height: Option<usize>,
-    fov: Option<f64>
+    fov: Option<f64>,
 }
 
 impl CameraBuilder {
@@ -59,7 +59,13 @@ impl CameraBuilder {
         let height = self.height.unwrap_or(60);
         let fov = self.fov.unwrap_or(90.0_f64);
 
-        Camera { location, width, height, rotation: Rotation::new(0.0, 0.0, 0.0), fov }
+        Camera {
+            location,
+            width,
+            height,
+            rotation: Rotation::new(0.0, 0.0, 0.0),
+            fov,
+        }
     }
 
     pub fn location(mut self, location: Vec3) -> Self {
